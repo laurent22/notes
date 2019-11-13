@@ -26,6 +26,7 @@ class NotesService {
 	private $config;
 	private $settings;
 	private $noteUtil;
+	private $joplinUtil;
 	private $appName;
 
 	/**
@@ -35,6 +36,7 @@ class NotesService {
 	 * @param IConfig $config
 	 * @param SettingsService $settings
 	 * @param NoteUtil $noteUtil
+	 * @param JoplinUtil $joplinUtil
 	 * @param String $appName
 	 */
 	public function __construct(
@@ -44,6 +46,7 @@ class NotesService {
 		IConfig $config,
 		SettingsService $settings,
 		NoteUtil $noteUtil,
+		JoplinUtil $joplinUtil,
 		$appName
 	) {
 		$this->root = $root;
@@ -52,6 +55,7 @@ class NotesService {
 		$this->config = $config;
 		$this->settings = $settings;
 		$this->noteUtil = $noteUtil;
+		$this->joplinUtil = $joplinUtil;
 		$this->appName = $appName;
 	}
 
@@ -79,6 +83,8 @@ class NotesService {
 			$notes[] = $this->getNote($file, $notesFolder, array_key_exists($id, $tags) ? $tags[$id] : [], $onlyMeta);
 		}
 
+		$notes = array_merge($notes, $this->joplinUtil->getNotes($userId, $onlyMeta));
+
 		return $notes;
 	}
 
@@ -91,8 +97,13 @@ class NotesService {
 	 * @return Note
 	 */
 	public function get($id, $userId) : Note {
-		$folder = $this->getFolderForUser($userId);
-		return $this->getNote($this->getFileById($folder, $id), $folder, $this->getTags($id));
+		if ($this->joplinUtil->isItemFile($userId, $id)) {
+			$o = $this->joplinUtil->getNote($userId, $id);
+			return $o;
+		} else {
+			$folder = $this->getFolderForUser($userId);
+			return $this->getNote($this->getFileById($folder, $id), $folder, $this->getTags($id));
+		}
 	}
 
 	private function getTags($id) {
